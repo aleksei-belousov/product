@@ -1,0 +1,114 @@
+managed with additional save implementation in class zbp_i_product_001 unique;
+strict ( 2 );
+with draft;
+define behavior for ZI_PRODUCT_001 alias Product
+implementation in class zbp_i_product_001 unique
+persistent table zproduct001
+draft table zproduct001d
+lock master
+total etag LastChangedAt
+authorization master ( instance )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  action create_products;
+  action check_products;
+
+  association _SizeHead { create ( features : instance, authorization : update ); with draft; }
+  association _Size     { create ( features : instance, authorization : update ); with draft; }
+  association _Item     { create ( features : instance, authorization : update ); with draft; }
+
+  // Events:
+  determination on_create on modify { field ProductUUID; }
+  determination on_model_modify on modify { field Model; }
+  determination on_scheme_save on save { field Model, Color, MatrixTypeID, Country; }
+  //determination on_sales_order_create on modify { field SalesOrderID, SalesOrderURL; } // to enable refreshing the fields
+
+  field ( numbering : managed, readonly ) ProductUUID;
+  field ( readonly ) MatrixTypeID;
+
+  draft determine action Prepare;
+  draft action Resume with additional implementation;
+  draft action Edit with additional implementation;
+  draft action Activate with additional implementation optimized;
+  draft action Discard /*with additional implementation*/;
+
+  side effects
+  {
+    field Model affects field MatrixTypeID, entity _Size;
+    field Color affects entity _Size;
+    field MatrixTypeID affects entity _Size;
+    field Country affects entity _Size;
+    action create_products affects entity _Item, entity _Size;
+    action check_products affects entity _Item, entity _Size;
+    action Activate affects entity _Item, entity _Size;
+  }
+
+}
+
+define behavior for ZI_SIZEHEAD_001 alias SizeHead
+//implementation in class zbp_i_sizehead_001 unique
+persistent table zsizehead001
+draft table zsizehead001d
+lock dependent by _Product
+authorization dependent by _Product
+etag master LocalLastChangedAt
+{
+  update;
+  delete;
+
+  field ( numbering : managed, readonly ) SizeHeadUUID;
+  field ( readonly ) ProductUUID;
+  field ( readonly ) LocalLastChangedAt;
+
+  association _Product { with draft; }
+
+}
+
+define behavior for ZI_SIZE_001 alias Size
+//implementation in class zbp_i_size_001 unique
+persistent table zsize001
+draft table zsize001d
+lock dependent by _Product
+authorization dependent by _Product
+etag master LocalLastChangedAt
+{
+  update;
+  delete;
+
+  field ( numbering : managed, readonly ) SizeUUID;
+  field ( readonly ) ProductUUID;
+  field ( readonly ) Back;
+  field ( readonly ) LocalLastChangedAt;
+
+  association _Product { with draft; }
+
+}
+
+define behavior for ZI_ITEM_001 alias Item
+//implementation in class zbp_i_item_001 unique
+persistent table zitem001
+draft table zitem001d
+lock dependent by _Product
+authorization dependent by _Product
+etag master LocalLastChangedAt
+{
+  update;
+  delete;
+
+  field ( numbering : managed, readonly ) ItemUUID;
+  field ( readonly ) ProductUUID;
+  field ( readonly ) Product;
+  field ( readonly ) Model;
+  field ( readonly ) Color;
+  field ( readonly ) CupSize;
+  field ( readonly ) BackSize;
+  field ( readonly ) Status;
+  field ( readonly ) LocalLastChangedAt;
+
+  association _Product { with draft; }
+
+}
